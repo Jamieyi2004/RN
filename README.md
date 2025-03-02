@@ -55,14 +55,51 @@ ssh -T git@github.com
 如果仍然遇到问题，请提供详细的错误信息或调试日志（例如通过`ssh -vT git@github.com`获取的详细输出），以便进一步分析和解决问题。
 
 ### 命令
-```bash
-tmux new -s <session-name>
-tmux attach-session -t <session-name>
+```log
+tmux ls # 查看会话列表
+tmux new -s <session-name> # 创建新会话
+tmux attach-session -t <session-name> # 进入会话 -t 选项用于指定你希望对哪个会话、窗口或窗格执行操作。
+tmux detach # 分离会话
+tmux kill-session -t <session-name> # 删除会话
+
+# 配置tmux
+touch .tmux.conf
+tmux source-file ~/.tmux.conf
+ 
 
 nvidia-smi
 
 python dataset_tool.py --source=./data/pokemon --dest=./data/pokemon256.zip --resolution=256x256 --transform=center-crop
 
-python train.py --outdir=./training-runs/ --cfg=fastgan --data=./data/pokemon256.zip --gpus=8 --batch=64 --mirror=1 --snap=50 --batch-gpu=8 --kimg=10000
+python train.py --outdir=./training-runs/ --cfg=fastgan --data=./data/artpainting.zip --gpus=4 --batch=32 --mirror=1 --snap=50 --batch-gpu=4 --kimg=200                                              
 
+# Pokemon 0.3 M 论文效果×
+{"results": {"fid50k_full": 45.36606959172587}, "metric": "fid50k_full", "total_time": 111.2026743888855, "total_time_str": "1m 51s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1740816742.9051576}
+
+# Pokemon 0.5 M 
+{"results": {"fid50k_full": 37.03922399485678}, "metric": "fid50k_full", "total_time": 110.23435521125793, "total_time_str": "1m 50s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1740821304.1662931}
+
+# Art Paintint 0.2M 论文效果√
+{"results": {"fid50k_full": 39.385495089095734}, "metric": "fid50k_full", "total_time": 112.90547394752502, "total_time_str": "1m 53s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1740885487.447922}
+
+# landscape 0.2M 
+{"results": {"fid50k_full": 22.80165436123803}, "metric": "fid50k_full", "total_time": 114.86466240882874, "total_time_str": "1m 55s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1740900960.730296}
+```
+
+
+```conf:.tmux.conf
+# 设置前缀为 Ctrl+a 而不是默认的 Ctrl+b
+set-option -g prefix C-a
+unbind C-b
+bind C-a send-prefix
+
+# 提高历史记录的行数限制
+set -g history-limit 10000
+
+# 启用鼠标支持
+set -g mouse on
+
+# 设置状态栏颜色
+set -g status-bg blue
+set -g status-fg white
 ```
