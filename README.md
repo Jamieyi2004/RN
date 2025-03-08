@@ -84,6 +84,8 @@ python train.py --outdir=./training-runs/ --cfg=fastgan --data=./data/artpaintin
 
 # landscape 0.2M 
 {"results": {"fid50k_full": 22.80165436123803}, "metric": "fid50k_full", "total_time": 114.86466240882874, "total_time_str": "1m 55s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1740900960.730296}
+
+
 ```
 
 
@@ -102,4 +104,9 @@ set -g mouse on
 # 设置状态栏颜色
 set -g status-bg blue
 set -g status-fg white
+```
+
+## 3.8 
+```
+nvcc --version
 ```
