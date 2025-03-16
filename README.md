@@ -72,7 +72,9 @@ nvidia-smi
 python dataset_tool.py --source=./data/pokemon --dest=./data/pokemon256.zip --resolution=256x256 --transform=center-crop
 
 python train.py --outdir=./training-runs/ --cfg=fastgan --data=./data/artpainting.zip --gpus=4 --batch=32 --mirror=1 --snap=50 --batch-gpu=4 --kimg=200                                              
-
+```
+## PG 复现
+```
 # Pokemon 0.3 M 论文效果×
 {"results": {"fid50k_full": 45.36606959172587}, "metric": "fid50k_full", "total_time": 111.2026743888855, "total_time_str": "1m 51s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1740816742.9051576}
 
@@ -88,7 +90,7 @@ python train.py --outdir=./training-runs/ --cfg=fastgan --data=./data/artpaintin
 
 ```
 
-
+## 配置tmux
 ```conf:.tmux.conf
 # 设置前缀为 Ctrl+a 而不是默认的 Ctrl+b
 set-option -g prefix C-a
@@ -106,7 +108,846 @@ set -g status-bg blue
 set -g status-fg white
 ```
 
-## 3.8 
+## 3.8 SG2Ada
 ```
 nvcc --version
+
+conda create --name gan_env python=3.7
+
+conda activate gan_env
+
+conda install pytorch=1.7.1 torchvision torchaudio cudatoolkit=11.1 -c pytorch -c conda-forge
+
+pip install click requests tqdm pyspng ninja imageio-ffmpeg==0.4.3 psutil scipy
+
+python train.py --outdir=./training-runs --data=./datasets/pokemon --gpus=1 --dry-run
 ```
+烦炸了 不知道到底安哪个版本好
+
+## 3.9
+
+```sh
+python train.py --outdir=./training-runs/ --cfg=fastgan --data=./data/pokemon256.zip --gpus=4 --batch=64 --mirror=1 --snap=50 --batch-gpu=16 --kimg=100
+```            
+
+## 3.10 加multi patch
+
+```log
+
+14:00
+pokemon256
+'yjm':    dict(num_patch=3, xflip=0.1, rotate90=0.1, xint=0.1, scale=0.1, rotate=0.1, aniso=0.1, xfrac=0.1, brightness=0.1, contrast=0.1, lumaflip=0.1, hue=0.1, saturation=0.1),
+Distributing across 4 GPUs...
+
+
+tick 25    kimg 100.0    time 29m 35s      sec/tick 55.9    sec/kimg 17.45   maintenance 0.0    cpumem 6.04   gpumem 14.84  reserved 17.32
+Evaluating metrics...
+{"results": {"fid50k_full": 73.36397488077691}, "metric": "fid50k_full", "total_time": 113.09260725975037, "total_time_str": "1m 53s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741586364.7429276}
+
+
+14:34
+
+'yjm':    dict(num_patch=3, xflip=0.1, rotate90=0.1, xint=0.1, scale=0.1, rotate=0.1, aniso=0.1, xfrac=0.1, brightness=0.1, contrast=0.1, lumaflip=0.1, hue=0.1, saturation=0.1),
+Distributing across 4 GPUs...
+
+tick 49    kimg 200.0    time 29m 39s      sec/tick 56.5    sec/kimg 17.64   maintenance 0.1    cpumem 5.93   gpumem 14.83  reserved 17.32
+Evaluating metrics...
+{"results": {"fid50k_full": 58.78484650586994}, "metric": "fid50k_full", "total_time": 113.24195408821106, "total_time_str": "1m 53s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741588396.2585406}
+
+
+15:11 pm, 承上
+Distributing across 4 GPUs...
+Setting up training phases...
+Exporting sample images...
+Initializing logs...
+Training for 300 kimg...
+
+Setting up PyTorch plugin "upfirdn2d_plugin"... Done.
+tick 49    kimg 204.0    time 1m 39s       sec/tick 77.5    sec/kimg 19.22   maintenance 21.7   cpumem 5.66   gpumem 14.83  reserved 17.30
+tick 50    kimg 208.1    time 3m 00s       sec/tick 80.9    sec/kimg 20.06   maintenance 0.0    cpumem 5.67   gpumem 14.83  reserved 17.30
+Evaluating metrics...
+{"results": {"fid50k_full": 69.76844164817396}, "metric": "fid50k_full", "total_time": 112.69540643692017, "total_time_str": "1m 53s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741588801.963993}
+tick 73    kimg 300.0    time 34m 07s      sec/tick 67.0    sec/kimg 20.53   maintenance 0.0    cpumem 5.68   gpumem 14.84  reserved 15.83
+Evaluating metrics...
+{"results": {"fid50k_full": 50.22697051560173}, "metric": "fid50k_full", "total_time": 120.01169872283936, "total_time_str": "2m 00s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741590676.887066}
+
+
+
+print(pretrained)
+
+
+Constructing networks...
+Module(
+  (layer0): Sequential(
+    (0): Conv2dSame(3, 32, kernel_size=(3, 3), stride=(2, 2), bias=False)
+    (1): BatchNorm2d(32, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+    (2): ReLU6(inplace=True)
+    (3): Sequential(
+      (0): DepthwiseSeparableConv(
+        (conv_dw): Conv2d(32, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=32, bias=False)
+        (bn1): BatchNorm2d(32, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pw): Conv2d(32, 16, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn2): BatchNorm2d(16, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): Identity()
+      )
+    )
+    (4): Sequential(
+      (0): InvertedResidual(
+        (conv_pw): Conv2d(16, 96, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(96, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (conv_dw): Conv2dSame(96, 96, kernel_size=(3, 3), stride=(2, 2), groups=96, bias=False)
+        (bn2): BatchNorm2d(96, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pwl): Conv2d(96, 24, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(24, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+      )
+      (1): InvertedResidual(
+        (conv_pw): Conv2d(24, 144, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(144, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (conv_dw): Conv2d(144, 144, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=144, bias=False)
+        (bn2): BatchNorm2d(144, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pwl): Conv2d(144, 24, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(24, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+      )
+    )
+  )
+  (layer1): Sequential(
+    (0): Sequential(
+      (0): InvertedResidual(
+        (conv_pw): Conv2d(24, 144, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(144, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (conv_dw): Conv2dSame(144, 144, kernel_size=(5, 5), stride=(2, 2), groups=144, bias=False)
+        (bn2): BatchNorm2d(144, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pwl): Conv2d(144, 40, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(40, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+      )
+      (1): InvertedResidual(
+        (conv_pw): Conv2d(40, 240, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(240, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (conv_dw): Conv2d(240, 240, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=240, bias=False)
+        (bn2): BatchNorm2d(240, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pwl): Conv2d(240, 40, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(40, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+      )
+    )
+  )
+  (layer2): Sequential(
+    (0): Sequential(
+      (0): InvertedResidual(
+        (conv_pw): Conv2d(40, 240, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(240, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (conv_dw): Conv2dSame(240, 240, kernel_size=(3, 3), stride=(2, 2), groups=240, bias=False)
+        (bn2): BatchNorm2d(240, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pwl): Conv2d(240, 80, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(80, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+      )
+      (1): InvertedResidual(
+        (conv_pw): Conv2d(80, 480, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(480, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (conv_dw): Conv2d(480, 480, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=480, bias=False)
+        (bn2): BatchNorm2d(480, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pwl): Conv2d(480, 80, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(80, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+      )
+      (2): InvertedResidual(
+        (conv_pw): Conv2d(80, 480, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(480, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (conv_dw): Conv2d(480, 480, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=480, bias=False)
+        (bn2): BatchNorm2d(480, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pwl): Conv2d(480, 80, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(80, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+      )
+    )
+    (1): Sequential(
+      (0): InvertedResidual(
+        (conv_pw): Conv2d(80, 480, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(480, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (conv_dw): Conv2d(480, 480, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=480, bias=False)
+        (bn2): BatchNorm2d(480, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pwl): Conv2d(480, 112, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(112, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+      )
+      (1): InvertedResidual(
+        (conv_pw): Conv2d(112, 672, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(672, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (conv_dw): Conv2d(672, 672, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=672, bias=False)
+        (bn2): BatchNorm2d(672, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pwl): Conv2d(672, 112, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(112, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+      )
+      (2): InvertedResidual(
+        (conv_pw): Conv2d(112, 672, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(672, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (conv_dw): Conv2d(672, 672, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=672, bias=False)
+        (bn2): BatchNorm2d(672, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pwl): Conv2d(672, 112, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(112, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+      )
+    )
+  )
+  (layer3): Sequential(
+    (0): Sequential(
+      (0): InvertedResidual(
+        (conv_pw): Conv2d(112, 672, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(672, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (conv_dw): Conv2dSame(672, 672, kernel_size=(5, 5), stride=(2, 2), groups=672, bias=False)
+        (bn2): BatchNorm2d(672, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pwl): Conv2d(672, 192, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(192, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+      )
+      (1): InvertedResidual(
+        (conv_pw): Conv2d(192, 1152, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(1152, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (conv_dw): Conv2d(1152, 1152, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=1152, bias=False)
+        (bn2): BatchNorm2d(1152, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pwl): Conv2d(1152, 192, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(192, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+      )
+      (2): InvertedResidual(
+        (conv_pw): Conv2d(192, 1152, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(1152, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (conv_dw): Conv2d(1152, 1152, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=1152, bias=False)
+        (bn2): BatchNorm2d(1152, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pwl): Conv2d(1152, 192, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(192, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+      )
+      (3): InvertedResidual(
+        (conv_pw): Conv2d(192, 1152, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(1152, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (conv_dw): Conv2d(1152, 1152, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=1152, bias=False)
+        (bn2): BatchNorm2d(1152, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pwl): Conv2d(1152, 192, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(192, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+      )
+    )
+    (1): Sequential(
+      (0): InvertedResidual(
+        (conv_pw): Conv2d(192, 1152, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn1): BatchNorm2d(1152, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act1): ReLU6(inplace=True)
+        (conv_dw): Conv2d(1152, 1152, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=1152, bias=False)
+        (bn2): BatchNorm2d(1152, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+        (act2): ReLU6(inplace=True)
+        (se): Identity()
+        (conv_pwl): Conv2d(1152, 320, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (bn3): BatchNorm2d(320, eps=0.001, momentum=0.1, affine=True, track_running_stats=True)
+      )
+    )
+  )
+)
+
+
+
+Layer 0 features shape: torch.Size([3, 24, 64, 64])
+Layer 1 features shape: torch.Size([3, 40, 32, 32])
+Layer 2 features shape: torch.Size([3, 112, 16, 16])
+Layer 3 features shape: torch.Size([3, 320, 8, 8])
+
+feature map：
+Channel Mixed Layer 1 features shape: torch.Size([3, 64, 64, 64])
+Channel Mixed Layer 2 features shape: torch.Size([3, 128, 32, 32])
+Channel Mixed Layer 3 features shape: torch.Size([3, 256, 16, 16])
+
+logit shape:
+([3,100])
+
+
+呜呜呜呜呜 tensor(
+    [
+        [-2.1914e+00, -2.3328e+00, -1.0197e+00, -7.8976e-01,  3.6183e+00,
+         -1.1614e+00, -1.9994e+00, -1.1285e+00, -1.2726e-01,  1.2080e+00,
+          7.9133e-02, -3.7927e+00, -3.1910e+00, -4.8022e+00, -3.0135e+00,
+         -4.1635e-01, -5.2531e+00, -4.5554e+00, -3.6860e+00, -2.3760e+00,
+         -6.8323e-01, -3.6440e+00, -3.1163e+00, -1.6912e+00,  2.9924e-02,
+          1.1630e+00,  1.5804e+00,  1.3985e+00,  1.3929e+00,  3.8778e+00,
+          4.5907e-01, -1.9940e+00, -2.3158e+00, -1.3756e+00,  2.0404e+00,
+         -6.8343e-01, -4.0935e+00, -3.4368e+00, -4.1995e+00, -1.2384e+00,
+          9.6372e-01, -1.0208e+00, -3.6675e+00, -1.5535e+00, -5.6804e-01,
+         -8.7882e-02, -1.0469e-01, -5.8151e-01,  3.1043e-01,  2.1401e+00,
+         -4.0207e+00, -3.6480e+00, -2.4584e+00,  6.2185e-01,  1.8462e+00,
+         -1.2832e+00, -3.0356e+00, -2.4772e+00, -5.3370e-01,  1.4977e+00,
+         -3.0535e+00, -4.7518e+00, -5.0844e+00, -1.4179e+00, -1.0389e+00,
+         -1.7174e+00, -2.0247e+00, -4.7633e+00, -3.8501e+00, -3.3801e+00,
+         -1.2928e+00, -1.8732e+00, -9.6809e-01, -1.7526e+00, -2.4124e+00,
+         -3.3721e+00, -4.6688e+00, -4.9578e+00, -3.4013e+00, -1.4792e+00,
+         -1.7880e+00, -2.5170e+00, -3.1064e+00, -2.7005e+00, -1.6898e+00,
+         -1.1722e+00, -1.0872e+00, -1.6530e+00, -1.9935e+00, -2.2125e+00,
+         -9.3401e-02,  3.8947e-01,  2.2247e-01, -2.6681e-01, -1.4561e+00,
+          9.4042e-01,  1.7519e+00,  1.7976e+00,  1.5363e+00, -1.3669e-02],
+
+
+        [ 8.6027e-01, -3.6478e+00, -4.8631e+00, -6.3782e+00, -1.1968e+01,
+          1.2105e+00, -4.1337e+00, -6.1388e+00, -5.1416e+00, -1.0383e+01,
+          3.0035e+00, -2.7892e+00, -5.8598e+00, -4.4652e+00, -6.7018e+00,
+          2.7165e+00,  5.8567e-01, -4.0628e+00, -4.0818e+00, -2.9297e+00,
+          1.3976e+00,  2.2465e+00, -4.9782e-01,  3.0201e-04,  4.9071e-01,
+         -2.0182e+00, -3.3169e+00, -3.2924e+00, -4.7075e+00, -4.7271e+00,
+         -2.0984e+00, -5.6861e+00, -6.7168e+00, -5.1101e+00, -4.5390e+00,
+          2.0102e-01, -2.4276e+00, -4.8196e+00, -5.1984e+00, -3.8536e+00,
+         -1.8501e+00, -1.8121e+00, -3.4092e+00, -4.5287e+00, -3.4271e+00,
+         -1.6064e+00, -1.3475e+00, -1.2428e+00, -3.6286e+00, -3.0043e+00,
+         -3.4188e+00, -3.2178e+00, -1.5843e+00, -1.7907e+00, -1.7307e+00,
+         -2.3631e+00, -1.6862e+00, -1.5193e+00, -5.8398e-01, -1.3738e+00,
+         -6.5471e-02, -1.2298e+00, -1.0846e+00, -1.4144e+00, -1.7873e+00,
+         -1.0049e+00, -1.9713e+00, -1.9289e+00, -1.1366e+00, -2.8319e+00,
+          1.2298e+00, -2.9977e+00, -1.6406e+00, -1.4374e+00, -1.9113e+00,
+         -4.4489e+00, -4.5801e+00, -6.5433e+00, -9.1489e+00, -1.1192e+01,
+         -3.2922e+00, -2.7561e+00, -3.4876e+00, -5.3007e+00, -7.9184e+00,
+         -2.7450e+00, -2.1205e+00, -2.1444e+00, -2.8331e+00, -5.2210e+00,
+         -1.3345e+00, -1.0845e+00, -9.4821e-01, -1.1293e+00, -2.8853e+00,
+          7.7411e-02,  3.8825e-01,  8.0838e-01,  3.3817e-01, -1.1000e+00],
+
+
+        [ 1.9186e+00, -1.9173e+00, -5.1670e+00, -5.8954e+00, -1.2178e+01,
+          1.5421e+00, -2.0642e+00, -4.5552e+00, -4.2788e+00, -6.8646e+00,
+         -1.8469e-01, -1.6138e+00, -4.1432e+00, -1.3642e+00, -2.7919e+00,
+         -3.7067e-01, -1.9778e+00, -1.9656e+00,  2.2772e+00,  3.1539e+00,
+         -1.8269e+00, -1.9148e+00, -9.9702e-01,  5.2587e+00,  6.6966e+00,
+         -2.8709e+00, -5.8423e+00, -7.2671e+00, -7.1371e+00, -6.0093e+00,
+         -1.5115e+00, -4.3334e+00, -7.3292e+00, -4.0609e+00, -2.9821e+00,
+         -2.2937e+00, -2.5702e+00, -3.0946e+00, -3.3967e+00, -7.9261e-01,
+         -1.6436e+00, -2.0594e+00, -4.7625e-01,  1.3703e+00,  1.4177e+00,
+         -8.2662e-01, -1.9168e+00,  6.7141e-01,  3.7445e+00,  3.5730e+00,
+         -3.4168e+00, -1.9567e+00, -1.4974e+00, -5.3459e-01, -1.3865e+00,
+         -2.3073e+00, -2.4758e+00, -1.1186e+00, -1.6512e-01,  1.1840e-01,
+         -4.0935e+00, -3.6448e+00, -6.9618e-01,  7.4113e-01,  1.2387e+00,
+         -3.4415e+00, -4.6366e+00,  7.2143e-01,  5.4266e+00,  4.3686e+00,
+         -7.3499e-01, -2.0378e+00,  1.5161e+00,  5.6295e+00,  6.5414e+00,
+         -5.4409e+00, -4.6696e+00, -5.3622e+00, -7.1285e+00, -1.0511e+01,
+         -3.9629e+00, -1.9857e+00, -1.0526e+00, -1.6141e+00, -5.4253e+00,
+         -2.8385e+00, -6.0376e-01,  1.0989e+00,  1.3751e+00, -1.4270e+00,
+         -1.2129e+00,  8.3198e-01,  2.4494e+00,  3.4222e+00,  1.3742e+00,
+          7.0626e-01,  2.1038e+00,  3.5944e+00,  4.7662e+00,  3.2499e+00]
+          
+          ]
+          ,
+
+
+    logit形状 Logits shape for disc 0: torch.Size([3, 25])
+    logit形状 Logits shape for disc 1: torch.Size([3, 25])
+    logit形状 Logits shape for disc 2: torch.Size([3, 25])
+    logit形状 Logits shape for disc 3: torch.Size([3, 25])
+
+
+
+
+                gen_logits_list = []
+                
+                # 对每一张增强后的图像，调用判别器并收集其输出
+                for img in augmented_imgs:
+                    gen_logits = self.run_D(img, gen_c, blur_sigma=blur_sigma) # tensor([3,100])
+                    gen_logits_list.append(gen_logits)
+                
+                # 整合所有的判别器输出，这里我们使用平均值作为最终的输出
+                # 你可以根据实际情况选择不同的整合方式
+                gen_logits_mean = torch.mean(torch.stack(gen_logits_list), dim=0)
+
+                # 计算生成器的损失：希望判别器对生成图像的评分尽可能高。
+                loss_Gmain = (-gen_logits_mean).mean()    
+
+
+
+
+2025.3.10 搞不懂为什么batchsize这维不见了 torch.Size([3, 3, 256, 256])
+哈哈哈哈哈哈哈Channel Mixed Layer 0 features shape: torch.Size([3, 64, 128, 128])
+哈哈哈哈哈哈哈Channel Mixed Layer 1 features shape: torch.Size([3, 64, 64, 64])
+哈哈哈哈哈哈哈Channel Mixed Layer 2 features shape: torch.Size([3, 128, 32, 32])
+哈哈哈哈哈哈哈Channel Mixed Layer 3 features shape: torch.Size([3, 256, 16, 16])
+
+呜呜呜呜呜 tensor([[ 4.5452e+00,  1.0911e+00,  5.0010e-01,  1.3517e+00,  1.1071e+00,
+
+
+
+2025.3.10 故事开始的地方之增强后的数据形状 torch.Size([16, 3, 256, 256])
+2025.3.10 然后呢之增强后的数据的枚举形状 torch.Size([3, 256, 256])
+```
+### 发现大Bug
+服了 循坏 和变量名搞混
+
+新结果！
+```sh
+Distributing across 4 GPUs...
+Setting up training phases...
+Exporting sample images...
+Initializing logs...
+Training for 100 kimg...
+
+tick 25    kimg 100.0    time 21m 02s      sec/tick 39.5    sec/kimg 12.34   maintenance 0.0    cpumem 6.02   gpumem 14.60  reserved 17.38
+Evaluating metrics...
+{"results": {"fid50k_full": 71.53914034772558}, "metric": "fid50k_full", "total_time": 112.52546954154968, "total_time_str": "1m 53s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741613763.8314934}
+
+e 16m 12s      sec/tick 50.1    sec/kimg 12.43   maintenance 0.0    cpumem 5.70   gpumem 14.67  reserved 17.53
+tick 44    kimg 180.7    time 17m 02s      sec/tick 50.1    sec/kimg 12.43   maintenance 0.0    cpumem 5.70   gpumem 14.62  reserved 17.53
+tick 45    kimg 184.7    time 17m 52s      sec/tick 50.2    sec/kimg 12.45   maintenance 0.0    cpumem 5.70   gpumem 14.61  reserved 17.53
+tick 46    kimg 188.7    time 18m 43s      sec/tick 50.1    sec/kimg 12.42   maintenance 0.0    cpumem 5.70   gpumem 14.62  reserved 17.53
+tick 47    kimg 192.8    time 19m 33s      sec/tick 50.1    sec/kimg 1
+
+
+Distributing across 4 GPUs...
+Setting up training phases...
+Exporting sample images...
+Initializing logs...
+Training for 300 kimg...
+
+Setting up PyTorch plugin "upfirdn2d_plugin"... Done.
+tick 49    kimg 204.0    time 1m 14s       sec/tick 53.8    sec/kimg 13.33   maintenance 20.4   cpumem 5.67   gpumem 14.65  reserved 17.52
+tick 50    kimg 208.1    time 2m 02s       sec/tick 47.7    sec/kimg 11.83   maintenance 0.0    cpumem 5.67   gpumem 14.64  reserved 17.52
+Evaluating metrics...
+{"results": {"fid50k_full": 45.860649306854626}, "metric": "fid50k_full", "total_time": 107.56543135643005, "total_time_str": "1m 48s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741618965.850956}
+
+tick 73    kimg 300.0    time 22m 47s      sec/tick 40.4    sec/kimg 12.37   maintenance 0.0    cpumem 6.02   gpumem 14.75  reserved 17.17
+Evaluating metrics...
+{"results": {"fid50k_full": 37.94602420848484}, "metric": "fid50k_full", "total_time": 111.10504460334778, "total_time_str": "1m 51s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741620215.2661362}
+
+
+Distributing across 4 GPUs...
+Setting up training phases...
+Exporting sample images...
+Initializing logs...
+Training for 300 kimg...
+
+
+
+```
+
+# 3.11
+```log
+Distributing across 4 GPUs...
+Setting up training phases...
+Exporting sample images...
+Initializing logs...
+Training for 800 kimg...
+
+Setting up PyTorch plugin "upfirdn2d_plugin"... Done.
+tick 100   kimg 416.1    time 3m 38s       sec/tick 48.4    sec/kimg 12.01   maintenance 0.0    cpumem 5.96   gpumem 14.61  reserved 17.53
+Evaluating metrics...
+{"results": {"fid50k_full": 36.12712326770921}, "metric": "fid50k_full", "total_time": 109.40994668006897, "total_time_str": "1m 49s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741623253.5369492}
+
+tick 150   kimg 617.7    time 47m 16s      sec/tick 50.0    sec/kimg 12.41   maintenance 0.0    cpumem 5.95   gpumem 14.77  reserved 17.20
+Evaluating metrics...
+{"results": {"fid50k_full": 32.7769063801067}, "metric": "fid50k_full", "total_time": 110.07181167602539, "total_time_str": "1m 50s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741625872.4140034}
+
+tick 196   kimg 800.0    time 1h 27m 06s   sec/tick 10.4    sec/kimg 12.46   maintenance 0.0    cpumem 6.04   gpumem 14.72  reserved 17.20
+Evaluating metrics...
+{"results": {"fid50k_full": 32.97345884028825}, "metric": "fid50k_full", "total_time": 110.51652455329895, "total_time_str": "1m 51s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741628262.0742772}
+
+到了1000kimg还是32
+
+
+# conda 
+conda env list
+conda env remove --name fucksg
+
+feature map shape [B, C, H, W]
+搜北鼻东科瑞 channel Mixed Layer 0 features shape: torch.Size([4, 64, 128, 128])
+搜北鼻东科瑞 channel Mixed Layer 1 features shape: torch.Size([4, 64, 64, 64])
+搜北鼻东科瑞 channel Mixed Layer 2 features shape: torch.Size([4, 128, 32, 32])
+搜北鼻东科瑞 channel Mixed Layer 3 features shape: torch.Size([4, 256, 16, 16])
+
+
+
+
+```
+## 加上emp_loss 完整版
+patch_num = 3 
+GPUs = 4
+
+0~300kimg, time=1h, FID=45 左右
+0~800kimg, time=3h, FID=36
+```log
+
+
+
+Distributing across 4 GPUs...
+Setting up training phases...
+Exporting sample images...
+Initializing logs...
+Training for 100 kimg...
+
+tick 25    kimg 100.0    time 21m 43s      sec/tick 41.3    sec/kimg 12.92   maintenance 0.0    cpumem 6.66   gpumem 14.62  reserved 17.41
+Evaluating metrics...
+{"results": {"fid50k_full": 59.93078521248154}, "metric": "fid50k_full", "total_time": 119.68448519706726, "total_time_str": "2m 00s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741707051.081955}
+
+
+tick 50    kimg 204.9    time 22m 54s      sec/tick 53.0    sec/kimg 13.15   maintenance 0.0    cpumem 6.40   gpumem 14.62  reserved 17.40
+Evaluating metrics...
+{"results": {"fid50k_full": 56.01921771941726}, "metric": "fid50k_full", "total_time": 127.16407871246338, "total_time_str": "2m 07s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741709281.5250418}
+
+tick 100   kimg 406.5    time 1h 08m 47s   sec/tick 52.0    sec/kimg 12.90   maintenance 0.0    cpumem 6.84   gpumem 14.73  reserved 17.19
+Evaluating metrics...
+{"results": {"fid50k_full": 38.71940576405606}, "metric": "fid50k_full", "total_time": 118.80406951904297, "total_time_str": "1m 59s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741712026.7884552}
+
+tick 124   kimg 500.0    time 1h 31m 14s   sec/tick 10.9    sec/kimg 13.05   maintenance 0.0    cpumem 6.84   gpumem 14.73  reserved 17.19
+Evaluating metrics...
+{"results": {"fid50k_full": 41.27142514953124}, "metric": "fid50k_full", "total_time": 122.88766026496887, "total_time_str": "2m 03s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741713377.0318086}
+
+
+Distributing across 4 GPUs...
+Setting up training phases...
+Exporting sample images...
+Initializing logs...
+Training for 800 kimg...
+
+
+tick 150   kimg 608.9    time 23m 25s      sec/tick 51.8    sec/kimg 12.85   maintenance 0.0    cpumem 6.40   gpumem 14.65  reserved 17.40
+Evaluating metrics...
+{"results": {"fid50k_full": 38.11045322730446}, "metric": "fid50k_full", "total_time": 116.38696813583374, "total_time_str": "1m 56s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741743568.5358715}
+
+tick 198   kimg 800.0    time 1h 06m 18s   sec/tick 20.3    sec/kimg 12.68   maintenance 0.0    cpumem 6.78   gpumem 14.77  reserved 17.16
+Evaluating metrics...
+{"results": {"fid50k_full": 36.279399583330125}, "metric": "fid50k_full", "total_time": 110.93686008453369, "total_time_str": "1m 51s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741746135.81125}
+```
+
+
+## 原版 PG
+```log
+tick 75    kimg 300.0    time 47m 11s      sec/tick 14.2    sec/kimg 8.89    maintenance 0.0    cpumem 6.04   gpumem 11.00  reserved 13.43
+Evaluating metrics...
+{"results": {"fid50k_full": 48.43183285205555}, "metric": "fid50k_full", "total_time": 116.10486030578613, "total_time_str": "1m 56s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741749515.7112646}
+
+tick 198   kimg 800.0    time 1h 25m 01s   sec/tick 36.6    sec/kimg 9.07    maintenance 0.0    cpumem 6.06   gpumem 11.00  reserved 14.04
+Evaluating metrics...
+{"results": {"fid50k_full": 36.15314169724118}, "metric": "fid50k_full", "total_time": 120.88154077529907, "total_time_str": "2m 01s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741766151.7780404}
+```
+
+## 3.12 18:00 奇怪 又跑了一下emp-gan 好好的效果
+```log
+tick 75    kimg 300.0    time 1h 08m 24s   sec/tick 20.6    sec/kimg 12.87   maintenance 0.0    cpumem 6.82   gpumem 14.76  reserved 17.17
+Evaluating metrics...
+{"results": {"fid50k_full": 37.57047301906411}, "metric": "fid50k_full", "total_time": 116.92138004302979, "total_time_str": "1m 57s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741772533.580496}
+```
+
+## 3.12 19:00 再跑emp-gan
+```log
+tick 50    kimg 201.7    time 43m 47s      sec/tick 54.0    sec/kimg 13.40   maintenance 0.0    cpumem 6.78   gpumem 14.63  reserved 17.41
+Evaluating metrics...
+{"results": {"fid50k_full": 61.523235890601576}, "metric": "fid50k_full", "total_time": 129.7537443637848, "total_time_str": "2m 10s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741775518.375832}
+tick 75    kimg 300.0    time 1h 08m 12s   sec/tick 21.7    sec/kimg 13.55   maintenance 0.0    cpumem 6.84   gpumem 14.76  reserved 17.17
+Evaluating metrics...
+{"results": {"fid50k_full": 45.55274004112226}, "metric": "fid50k_full", "total_time": 131.85048127174377, "total_time_str": "2m 12s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741776985.2541676}
+
+Distributing across 4 GPUs...
+Setting up training phases...
+Exporting sample images...
+Initializing logs...
+Training for 800 kimg...
+
+Setting up PyTorch plugin "upfirdn2d_plugin"... Done.
+tick 75    kimg 304.1    time 1m 17s       sec/tick 56.4    sec/kimg 13.99   maintenance 20.9   cpumem 6.29   gpumem 14.67  reserved 17.40
+tick 76    kimg 308.1    time 2m 08s       sec/tick 50.4    sec/kimg 12.51   maintenance 0.0    cpumem 6.30   gpumem 14.66  reserved 17.40
+tick 77    kimg 312.1    time 2m 59s       sec/tick 51.6    sec/kimg 12.79   maintenance 0.0    cpumem 6.30   gpumem 14.63  reserved 17.40
+tick 78    kimg 316.2    time 3m 51s       sec/tick 51.7    sec/kimg 12.83   maintenance 0.0    cpumem 6.30   gpumem 14.63  reserved 17.40
+tick 79    kimg 320.2    time 4m 44s       sec/tick 52.8    sec/kimg 13.09   maintenance 0.0    cpumem 6.30   gpumem 14.64  reserved 17.40
+tick 80    kimg 324.2    time 5m 37s       sec/tick 53.3    sec/kimg 13.21   maintenance 0.0    cpumem 6.30   gpumem 14.64  reserved 17.40
+tick 81    kimg 328.3    time 6m 30s       sec/tick 52.9    sec/kimg 13.11   maintenance 0.0    cpumem 6.30   gpumem 14.64  reserved 17.40
+tick 82    kimg 332.3    time 7m 24s       sec/tick 53.4    sec/kimg 13.24   maintenance 0.0    cpumem 6.30   gpumem 14.63  reserved 17.40
+tick 83    kimg 336.3    time 8m 17s       sec/tick 53.6    sec/kimg 13.30   maintenance 0.0    cpumem 6.30   gpumem 14.69  reserved 17.40
+tick 84    kimg 340.4    time 9m 11s       sec/tick 54.0    sec/kimg 13.39   maintenance 0.0    cpumem 6.30   gpumem 14.65  reserved 17.40
+tick 85    kimg 344.4    time 10m 06s      sec/tick 54.6    sec/kimg 13.53   maintenance 0.0    cpumem 6.30   gpumem 14.63  reserved 17.40
+tick 86    kimg 348.4    time 11m 01s      sec/tick 54.9    sec/kimg 13.61   maintenance 0.0    cpumem 6.30   gpumem 14.61  reserved 17.40
+tick 87    kimg 352.4    time 11m 55s      sec/tick 54.3    sec/kimg 13.47   maintenance 0.0    cpumem 6.30   gpumem 14.62  reserved 17.40
+tick 88    kimg 356.5    time 12m 50s      sec/tick 54.8    sec/kimg 13.60   maintenance 0.0    cpumem 6.30   gpumem 14.62  reserved 17.40
+tick 89    kimg 360.5    time 13m 44s      sec/tick 54.3    sec/kimg 13.47   maintenance 0.0    cpumem 6.30   gpumem 14.63  reserved 17.40
+tick 90    kimg 364.5    time 14m 39s      sec/tick 55.0    sec/kimg 13.65   maintenance 0.0    cpumem 6.30   gpumem 14.65  reserved 17.40
+tick 91    kimg 368.6    time 15m 34s      sec/tick 54.2    sec/kimg 13.45   maintenance 0.0    cpumem 6.30   gpumem 14.64  reserved 17.40
+tick 92    kimg 372.6    time 16m 28s      sec/tick 54.6    sec/kimg 13.53   maintenance 0.0    cpumem 6.30   gpumem 14.63  reserved 17.40
+tick 93    kimg 376.6    time 17m 23s      sec/tick 54.6    sec/kimg 13.54   maintenance 0.0    cpumem 6.30   gpumem 14.68  reserved 17.40
+tick 94    kimg 380.7    time 18m 18s      sec/tick 55.3    sec/kimg 13.70   maintenance 0.0    cpumem 6.30   gpumem 14.64  reserved 17.40
+tick 95    kimg 384.7    time 19m 13s      sec/tick 55.0    sec/kimg 13.63   maintenance 0.0    cpumem 6.30   gpumem 14.62  reserved 17.40
+tick 96    kimg 388.7    time 20m 08s      sec/tick 55.2    sec/kimg 13.70   maintenance 0.0    cpumem 6.30   gpumem 14.63  reserved 17.40
+tick 97    kimg 392.8    time 21m 03s      sec/tick 54.5    sec/kimg 13.51   maintenance 0.0    cpumem 6.30   gpumem 14.65  reserved 17.40
+tick 98    kimg 396.8    time 21m 58s      sec/tick 54.9    sec/kimg 13.63   maintenance 0.0    cpumem 6.30   gpumem 14.63  reserved 17.40
+tick 99    kimg 400.8    time 22m 53s      sec/tick 54.9    sec/kimg 13.63   maintenance 0.0    cpumem 6.30   gpumem 14.62  reserved 17.40
+tick 100   kimg 404.9    time 23m 48s      sec/tick 54.8    sec/kimg 13.60   maintenance 0.0    cpumem 6.30   gpumem 14.62  reserved 17.40
+Evaluating metrics...
+{"results": {"fid50k_full": 41.41961943270985}, "metric": "fid50k_full", "total_time": 135.5470850467682, "total_time_str": "2m 16s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741778720.6143289}
+tick 101   kimg 408.9    time 27m 09s      sec/tick 53.2    sec/kimg 13.19   maintenance 148.5  cpumem 6.61   gpumem 14.76  reserved 18.19
+tick 102   kimg 412.9    time 28m 03s      sec/tick 54.1    sec/kimg 13.42   maintenance 0.0    cpumem 6.61   gpumem 14.73  reserved 17.19
+tick 103   kimg 417.0    time 28m 58s      sec/tick 54.6    sec/kimg 13.55   maintenance 0.0    cpumem 6.61   gpumem 14.78  reserved 17.19
+tick 104   kimg 421.0    time 29m 53s      sec/tick 55.2    sec/kimg 13.69   maintenance 0.0    cpumem 6.61   gpumem 14.74  reserved 17.19
+tick 105   kimg 425.0    time 30m 48s      sec/tick 55.2    sec/kimg 13.68   maintenance 0.0    cpumem 6.61   gpumem 14.71  reserved 17.19
+tick 106   kimg 429.1    time 31m 43s      sec/tick 54.8    sec/kimg 13.58   maintenance 0.0    cpumem 6.61   gpumem 14.72  reserved 17.19
+tick 107   kimg 433.1    time 32m 38s      sec/tick 55.1    sec/kimg 13.66   maintenance 0.0    cpumem 6.61   gpumem 14.75  reserved 17.19
+tick 108   kimg 437.1    time 33m 33s      sec/tick 54.9    sec/kimg 13.62   maintenance 0.0    cpumem 6.61   gpumem 14.72  reserved 17.19
+tick 109   kimg 441.2    time 34m 28s      sec/tick 54.8    sec/kimg 13.58   maintenance 0.0    cpumem 6.61   gpumem 14.72  reserved 17.19
+tick 110   kimg 445.2    time 35m 23s      sec/tick 55.1    sec/kimg 13.67   maintenance 0.0    cpumem 6.61   gpumem 14.71  reserved 17.19
+tick 111   kimg 449.2    time 36m 18s      sec/tick 54.9    sec/kimg 13.61   maintenance 0.0    cpumem 6.61   gpumem 14.74  reserved 17.19
+tick 112   kimg 453.2    time 37m 13s      sec/tick 55.1    sec/kimg 13.68   maintenance 0.0    cpumem 6.61   gpumem 14.71  reserved 17.19
+tick 113   kimg 457.3    time 38m 08s      sec/tick 54.8    sec/kimg 13.58   maintenance 0.0    cpumem 6.61   gpumem 14.74  reserved 17.19
+tick 114   kimg 461.3    time 39m 03s      sec/tick 54.9    sec/kimg 13.61   maintenance 0.0    cpumem 6.61   gpumem 14.75  reserved 17.19
+tick 115   kimg 465.3    time 39m 58s      sec/tick 55.3    sec/kimg 13.71   maintenance 0.0    cpumem 6.61   gpumem 14.72  reserved 17.19
+tick 116   kimg 469.4    time 40m 53s      sec/tick 54.7    sec/kimg 13.56   maintenance 0.0    cpumem 6.61   gpumem 14.71  reserved 17.19
+tick 117   kimg 473.4    time 41m 48s      sec/tick 54.9    sec/kimg 13.61   maintenance 0.0    cpumem 6.61   gpumem 14.76  reserved 17.19
+tick 118   kimg 477.4    time 42m 43s      sec/tick 54.8    sec/kimg 13.58   maintenance 0.0    cpumem 6.61   gpumem 14.73  reserved 17.19
+tick 119   kimg 481.5    time 43m 37s      sec/tick 54.2    sec/kimg 13.45   maintenance 0.0    cpumem 6.61   gpumem 14.78  reserved 17.19
+tick 120   kimg 485.5    time 44m 32s      sec/tick 55.3    sec/kimg 13.72   maintenance 0.0    cpumem 6.61   gpumem 14.73  reserved 17.19
+tick 121   kimg 489.5    time 45m 27s      sec/tick 54.9    sec/kimg 13.61   maintenance 0.0    cpumem 6.61   gpumem 14.71  reserved 17.19
+tick 122   kimg 493.6    time 46m 23s      sec/tick 55.2    sec/kimg 13.70   maintenance 0.0    cpumem 6.61   gpumem 14.73  reserved 17.19
+tick 123   kimg 497.6    time 47m 17s      sec/tick 54.9    sec/kimg 13.61   maintenance 0.0    cpumem 6.61   gpumem 14.74  reserved 17.19
+tick 124   kimg 501.6    time 48m 13s      sec/tick 55.2    sec/kimg 13.68   maintenance 0.0    cpumem 6.61   gpumem 14.75  reserved 17.19
+tick 125   kimg 505.7    time 49m 07s      sec/tick 54.6    sec/kimg 13.55   maintenance 0.0    cpumem 6.61   gpumem 14.72  reserved 17.19
+tick 126   kimg 509.7    time 50m 03s      sec/tick 55.2    sec/kimg 13.70   maintenance 0.0    cpumem 6.61   gpumem 14.75  reserved 17.19
+tick 127   kimg 513.7    time 50m 58s      sec/tick 55.1    sec/kimg 13.67   maintenance 0.0    cpumem 6.61   gpumem 14.73  reserved 17.19
+tick 128   kimg 517.8    time 51m 53s      sec/tick 55.2    sec/kimg 13.68   maintenance 0.0    cpumem 6.61   gpumem 14.79  reserved 17.19
+tick 129   kimg 521.8    time 52m 48s      sec/tick 55.0    sec/kimg 13.64   maintenance 0.0    cpumem 6.61   gpumem 14.72  reserved 17.19
+tick 130   kimg 525.8    time 53m 43s      sec/tick 55.5    sec/kimg 13.76   maintenance 0.0    cpumem 6.61   gpumem 14.77  reserved 17.19
+tick 131   kimg 529.9    time 54m 38s      sec/tick 54.8    sec/kimg 13.60   maintenance 0.0    cpumem 6.61   gpumem 14.76  reserved 17.19
+tick 132   kimg 533.9    time 55m 34s      sec/tick 55.5    sec/kimg 13.77   maintenance 0.0    cpumem 6.61   gpumem 14.74  reserved 17.19
+tick 133   kimg 537.9    time 56m 30s      sec/tick 55.6    sec/kimg 13.78   maintenance 0.0    cpumem 6.61   gpumem 14.74  reserved 17.19
+tick 134   kimg 542.0    time 57m 25s      sec/tick 55.1    sec/kimg 13.67   maintenance 0.0    cpumem 6.61   gpumem 14.75  reserved 17.19
+tick 135   kimg 546.0    time 58m 20s      sec/tick 55.8    sec/kimg 13.83   maintenance 0.0    cpumem 6.61   gpumem 14.79  reserved 17.19
+tick 136   kimg 550.0    time 59m 16s      sec/tick 55.6    sec/kimg 13.79   maintenance 0.0    cpumem 6.61   gpumem 14.74  reserved 17.19
+tick 137   kimg 554.0    time 1h 00m 11s   sec/tick 55.2    sec/kimg 13.69   maintenance 0.0    cpumem 6.61   gpumem 14.76  reserved 17.19
+tick 138   kimg 558.1    time 1h 01m 06s   sec/tick 55.1    sec/kimg 13.66   maintenance 0.0    cpumem 6.61   gpumem 14.74  reserved 17.19
+tick 139   kimg 562.1    time 1h 02m 02s   sec/tick 55.5    sec/kimg 13.77   maintenance 0.0    cpumem 6.61   gpumem 14.80  reserved 17.19
+tick 140   kimg 566.1    time 1h 02m 57s   sec/tick 54.9    sec/kimg 13.61   maintenance 0.0    cpumem 6.61   gpumem 14.73  reserved 17.19
+tick 141   kimg 570.2    time 1h 03m 53s   sec/tick 55.9    sec/kimg 13.87   maintenance 0.0    cpumem 6.61   gpumem 14.75  reserved 17.19
+tick 142   kimg 574.2    time 1h 04m 48s   sec/tick 55.6    sec/kimg 13.80   maintenance 0.0    cpumem 6.61   gpumem 14.74  reserved 17.19
+tick 143   kimg 578.2    time 1h 05m 44s   sec/tick 55.4    sec/kimg 13.74   maintenance 0.0    cpumem 6.61   gpumem 14.76  reserved 17.19
+tick 144   kimg 582.3    time 1h 06m 39s   sec/tick 55.0    sec/kimg 13.64   maintenance 0.0    cpumem 6.61   gpumem 14.75  reserved 17.19
+tick 145   kimg 586.3    time 1h 07m 35s   sec/tick 55.8    sec/kimg 13.83   maintenance 0.0    cpumem 6.61   gpumem 14.73  reserved 17.19
+tick 146   kimg 590.3    time 1h 08m 30s   sec/tick 55.5    sec/kimg 13.77   maintenance 0.0    cpumem 6.61   gpumem 14.77  reserved 17.19
+tick 147   kimg 594.4    time 1h 09m 26s   sec/tick 55.5    sec/kimg 13.75   maintenance 0.0    cpumem 6.61   gpumem 14.72  reserved 17.19
+tick 148   kimg 598.4    time 1h 10m 21s   sec/tick 55.1    sec/kimg 13.67   maintenance 0.0    cpumem 6.61   gpumem 14.77  reserved 17.19
+tick 149   kimg 602.4    time 1h 11m 16s   sec/tick 54.9    sec/kimg 13.61   maintenance 0.0    cpumem 6.61   gpumem 14.77  reserved 17.19
+tick 150   kimg 606.5    time 1h 12m 11s   sec/tick 54.9    sec/kimg 13.61   maintenance 0.0    cpumem 6.61   gpumem 14.73  reserved 17.19
+Evaluating metrics...
+{"results": {"fid50k_full": 36.11423214186288}, "metric": "fid50k_full", "total_time": 132.92021799087524, "total_time_str": "2m 13s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741781621.027871}
+tick 151   kimg 610.5    time 1h 15m 30s   sec/tick 53.1    sec/kimg 13.17   maintenance 145.9  cpumem 6.62   gpumem 14.73  reserved 17.19
+tick 152   kimg 614.5    time 1h 16m 24s   sec/tick 53.9    sec/kimg 13.38   maintenance 0.0    cpumem 6.62   gpumem 14.78  reserved 17.19
+tick 153   kimg 618.6    time 1h 17m 18s   sec/tick 54.4    sec/kimg 13.49   maintenance 0.0    cpumem 6.62   gpumem 14.74  reserved 17.19
+tick 154   kimg 622.6    time 1h 18m 13s   sec/tick 54.7    sec/kimg 13.57   maintenance 0.0    cpumem 6.62   gpumem 14.74  reserved 17.19
+tick 155   kimg 626.6    time 1h 19m 07s   sec/tick 54.6    sec/kimg 13.54   maintenance 0.0    cpumem 6.62   gpumem 14.73  reserved 17.19
+tick 156   kimg 630.7    time 1h 20m 02s   sec/tick 54.2    sec/kimg 13.45   maintenance 0.0    cpumem 6.62   gpumem 14.74  reserved 17.19
+tick 157   kimg 634.7    time 1h 20m 56s   sec/tick 54.2    sec/kimg 13.45   maintenance 0.0    cpumem 6.62   gpumem 14.72  reserved 17.19
+tick 158   kimg 638.7    time 1h 21m 49s   sec/tick 53.4    sec/kimg 13.23   maintenance 0.0    cpumem 6.62   gpumem 14.72  reserved 17.19
+tick 159   kimg 642.8    time 1h 22m 43s   sec/tick 53.7    sec/kimg 13.31   maintenance 0.0    cpumem 6.62   gpumem 14.77  reserved 17.19
+tick 160   kimg 646.8    time 1h 23m 37s   sec/tick 53.6    sec/kimg 13.29   maintenance 0.0    cpumem 6.62   gpumem 14.73  reserved 17.19
+tick 161   kimg 650.8    time 1h 24m 31s   sec/tick 54.1    sec/kimg 13.42   maintenance 0.0    cpumem 6.62   gpumem 14.74  reserved 17.19
+tick 162   kimg 654.8    time 1h 25m 25s   sec/tick 54.1    sec/kimg 13.42   maintenance 0.0    cpumem 6.62   gpumem 14.76  reserved 17.19
+tick 163   kimg 658.9    time 1h 26m 19s   sec/tick 54.3    sec/kimg 13.47   maintenance 0.0    cpumem 6.62   gpumem 14.75  reserved 17.19
+tick 164   kimg 662.9    time 1h 27m 12s   sec/tick 53.1    sec/kimg 13.17   maintenance 0.0    cpumem 6.62   gpumem 14.74  reserved 17.19
+tick 165   kimg 666.9    time 1h 28m 06s   sec/tick 53.3    sec/kimg 13.21   maintenance 0.0    cpumem 6.62   gpumem 14.73  reserved 17.19
+tick 166   kimg 671.0    time 1h 28m 59s   sec/tick 53.8    sec/kimg 13.34   maintenance 0.0    cpumem 6.62   gpumem 14.72  reserved 17.19
+tick 167   kimg 675.0    time 1h 29m 52s   sec/tick 52.9    sec/kimg 13.11   maintenance 0.0    cpumem 6.62   gpumem 14.77  reserved 17.19
+tick 168   kimg 679.0    time 1h 30m 45s   sec/tick 53.0    sec/kimg 13.13   maintenance 0.0    cpumem 6.62   gpumem 14.75  reserved 17.19
+tick 169   kimg 683.1    time 1h 31m 38s   sec/tick 53.1    sec/kimg 13.18   maintenance 0.0    cpumem 6.62   gpumem 14.73  reserved 17.19
+tick 170   kimg 687.1    time 1h 32m 31s   sec/tick 53.0    sec/kimg 13.13   maintenance 0.0    cpumem 6.62   gpumem 14.73  reserved 17.19
+tick 171   kimg 691.1    time 1h 33m 25s   sec/tick 53.7    sec/kimg 13.31   maintenance 0.0    cpumem 6.62   gpumem 14.74  reserved 17.19
+tick 172   kimg 695.2    time 1h 34m 18s   sec/tick 53.1    sec/kimg 13.17   maintenance 0.0    cpumem 6.62   gpumem 14.74  reserved 17.19
+tick 173   kimg 699.2    time 1h 35m 11s   sec/tick 53.1    sec/kimg 13.17   maintenance 0.0    cpumem 6.62   gpumem 14.76  reserved 17.19
+tick 174   kimg 703.2    time 1h 36m 05s   sec/tick 53.7    sec/kimg 13.33   maintenance 0.0    cpumem 6.62   gpumem 14.75  reserved 17.19
+tick 175   kimg 707.3    time 1h 36m 58s   sec/tick 53.2    sec/kimg 13.20   maintenance 0.0    cpumem 6.62   gpumem 14.72  reserved 17.19
+tick 176   kimg 711.3    time 1h 37m 53s   sec/tick 54.0    sec/kimg 13.40   maintenance 0.0    cpumem 6.62   gpumem 14.72  reserved 17.19
+tick 177   kimg 715.3    time 1h 38m 46s   sec/tick 53.5    sec/kimg 13.26   maintenance 0.0    cpumem 6.62   gpumem 14.77  reserved 17.19
+tick 178   kimg 719.4    time 1h 39m 40s   sec/tick 53.5    sec/kimg 13.27   maintenance 0.0    cpumem 6.62   gpumem 14.73  reserved 17.19
+tick 179   kimg 723.4    time 1h 40m 33s   sec/tick 53.5    sec/kimg 13.26   maintenance 0.0    cpumem 6.62   gpumem 14.74  reserved 17.19
+tick 180   kimg 727.4    time 1h 41m 28s   sec/tick 54.4    sec/kimg 13.50   maintenance 0.0    cpumem 6.62   gpumem 14.76  reserved 17.19
+tick 181   kimg 731.5    time 1h 42m 22s   sec/tick 54.1    sec/kimg 13.41   maintenance 0.0    cpumem 6.62   gpumem 14.72  reserved 17.19
+tick 182   kimg 735.5    time 1h 43m 15s   sec/tick 53.2    sec/kimg 13.20   maintenance 0.0    cpumem 6.62   gpumem 14.72  reserved 17.19
+tick 183   kimg 739.5    time 1h 44m 09s   sec/tick 53.7    sec/kimg 13.32   maintenance 0.0    cpumem 6.62   gpumem 14.74  reserved 17.19
+tick 184   kimg 743.6    time 1h 45m 02s   sec/tick 53.4    sec/kimg 13.23   maintenance 0.0    cpumem 6.62   gpumem 14.75  reserved 17.19
+tick 185   kimg 747.6    time 1h 45m 55s   sec/tick 53.5    sec/kimg 13.26   maintenance 0.0    cpumem 6.62   gpumem 14.75  reserved 17.19
+tick 186   kimg 751.6    time 1h 46m 49s   sec/tick 53.6    sec/kimg 13.29   maintenance 0.0    cpumem 6.62   gpumem 14.77  reserved 17.19
+tick 187   kimg 755.6    time 1h 47m 43s   sec/tick 53.7    sec/kimg 13.31   maintenance 0.0    cpumem 6.62   gpumem 14.77  reserved 17.19
+tick 188   kimg 759.7    time 1h 48m 36s   sec/tick 53.4    sec/kimg 13.23   maintenance 0.0    cpumem 6.62   gpumem 14.74  reserved 17.19
+tick 189   kimg 763.7    time 1h 49m 29s   sec/tick 53.3    sec/kimg 13.21   maintenance 0.0    cpumem 6.62   gpumem 14.73  reserved 17.19
+tick 190   kimg 767.7    time 1h 50m 24s   sec/tick 54.4    sec/kimg 13.48   maintenance 0.0    cpumem 6.62   gpumem 14.78  reserved 17.19
+tick 191   kimg 771.8    time 1h 51m 17s   sec/tick 53.2    sec/kimg 13.20   maintenance 0.0    cpumem 6.62   gpumem 14.76  reserved 17.19
+tick 192   kimg 775.8    time 1h 52m 11s   sec/tick 53.5    sec/kimg 13.27   maintenance 0.0    cpumem 6.62   gpumem 14.73  reserved 17.19
+tick 193   kimg 779.8    time 1h 53m 04s   sec/tick 53.3    sec/kimg 13.21   maintenance 0.0    cpumem 6.62   gpumem 14.75  reserved 17.19
+tick 194   kimg 783.9    time 1h 53m 58s   sec/tick 53.7    sec/kimg 13.31   maintenance 0.0    cpumem 6.62   gpumem 14.74  reserved 17.19
+tick 195   kimg 787.9    time 1h 54m 51s   sec/tick 53.1    sec/kimg 13.17   maintenance 0.0    cpumem 6.62   gpumem 14.74  reserved 17.19
+tick 196   kimg 791.9    time 1h 55m 44s   sec/tick 53.0    sec/kimg 13.15   maintenance 0.0    cpumem 6.62   gpumem 14.75  reserved 17.19
+tick 197   kimg 796.0    time 1h 56m 38s   sec/tick 53.7    sec/kimg 13.33   maintenance 0.0    cpumem 6.62   gpumem 14.71  reserved 17.19
+tick 198   kimg 800.0    time 1h 57m 31s   sec/tick 53.1    sec/kimg 13.16   maintenance 0.0    cpumem 6.62   gpumem 14.79  reserved 17.19
+Evaluating metrics...
+{"results": {"fid50k_full": 36.813813811434215}, "metric": "fid50k_full", "total_time": 126.15140104293823, "total_time_str": "2m 06s", "num_gpus": 4, "snapshot_pkl": "network-snapshot.pkl", "timestamp": 1741784333.7237139}
+```
+
+## 今晚脚本
+
+snap=25
+递增aug_p 
+递增patch_num
+执行1次
+
+为了实现遍历 `emp_patch` 和 `emp_prob` 的值，并且根据这些参数动态生成输出目录名（`outdir`），可以编写一个简单的 Bash 脚本来完成这个任务。以下是具体的脚本：
+
+```bash
+#!/bin/bash
+
+# 定义需要遍历的参数值
+emp_patches=(4 8)
+emp_probs=(1 2 3 4)
+
+# 遍历 emp_patch 和 emp_prob 的所有组合
+for emp_patch in "${emp_patches[@]}"; do
+    for emp_prob in "${emp_probs[@]}"; do
+        # 动态生成 outdir
+        outdir="./training-runs${emp_patch}${emp_prob}/"
+        
+        # 运行 train.py 命令
+        python train.py \
+            --outdir="$outdir" \
+            --cfg=fastgan \
+            --data=./data/artpainting.zip \
+            --gpus=4 \
+            --batch=64 \
+            --mirror=1 \
+            --snap=50 \
+            --batch-gpu=16 \
+            --kimg=1000 \
+            --emp_patch="$emp_patch" \
+            --emp_prob="$emp_prob"
+        
+        # 输出当前使用的参数组合
+        echo "Completed training with emp_patch=$emp_patch, emp_prob=$emp_prob, outdir=$outdir"
+    done
+done
+```
+
+### 如何使用该脚本：
+
+1. 将上述脚本保存为文件，比如命名为 `run_train.sh`。
+2. 给这个脚本添加执行权限：
+   ```bash
+   chmod +x run_train.sh
+   ```
+3. 运行脚本：
+   ```bash
+   ./run_train.sh
+   ```
+
+### 脚本说明：
+
+- **定义数组**：`emp_patches` 和 `emp_probs` 分别存储了 `emp_patch` 和 `emp_prob` 的所有可能值。
+- **双重循环**：外层循环遍历 `emp_patch` 的值，内层循环遍历 `emp_prob` 的值。
+- **动态生成输出目录**：通过字符串拼接生成 `outdir` 的路径，格式为 `./training-runs/outdir${emp_patch}${emp_prob}/`。
+- **运行训练命令**：在每次循环中调用 `python train.py` 命令，并传入相应的参数值。
+- **输出当前状态**：打印出当前使用的 `emp_patch`, `emp_prob` 及其对应的 `outdir`，以便跟踪进度。
+
+这样，你就可以自动遍历所有指定的 `emp_patch` 和 `emp_prob` 组合，并为每个组合生成不同的输出目录进行训练。
+
+
+## 论文润色
+请按照以下步骤操作：
+1. 开启深度思考模式
+2. 复制下方提示词发送给Deepseek
+    
+## Role
+    
+您将扮演一位经验丰富的文本重构专家，专注于将AI生成内容转化为自然流畅的人类语言表达。重点在于消除机械感，使文本在语言风格、情感传递和逻辑衔接等方面更贴近人类创作。
+    
+## Professional Background
+    
+作为文本重构领域的专家，您擅长将AI生成内容转化为自然的人类语言表达。您深谙人类写作特点，能够精准识别并修正AI文本中的典型特征，如表达重复、情感匮乏、逻辑僵化等问题。
+    
+## Core Skills
+    
+1. 精准识别AI文本中的模式化表达
+2. 运用创造性写作技巧，通过词汇重组、句式优化、情感注入等方式提升文本质量
+3. 具备专业的编辑能力，可优化文本结构与逻辑，确保行文流畅
+    
+## Work Objectives
+    
+- 将AI文本转化为接近人类写作风格
+- 增强文本的口语化特征
+- 提升情感表达与个性化程度
+- 确保内容吸引力与可读性
+    
+## Work Principles
+    
+- 保持原文核心信息准确
+- 不改变文章主旨
+- 确保语言表达的多样性与表现力
+    
+## Output Format
+    
+提供优化后的文本，并附具体修改建议与优化说明
+    
+## Workflow
+    
+1. 分析AI文本特征
+2. 优化词汇与句式
+3. 增强情感表达
+4. 调整文本结构
+5. 进行最终润色
+6. 提供修改说明
+    
+## Initiation Dialogue
+    
+您好！我是文本重构专家，可为您提供专业的文本优化服务。请提供需要处理的文本内容，我将从多个维度进行优化，使其更贴近人类写作风格。
+    
+请在输入框中粘贴待处理文本，按下Shift+Enter换行后，输入以下指令：
+"请将以上内容转换为[指定文体]风格，同时确保消除AI生成痕迹。"
+    
+注意事项：
+1. 可根据需求替换[指定文体]为所需文体类型
+2. 确保修改后的文本符合目标文体的特征
+3. 保持原文核心信息不变
+
+## 1*1 Conv2d
+
+
+1. 维度缩减（降维）
+减少通道数：通过1x1卷积可以有效地减少特征图的通道数，从而降低计算复杂度和模型参数数量。这对于控制计算成本和避免过拟合非常有用。
+示例：假设有一个形状为 [Batch_size, 256, 16, 16] 的特征图，使用一个输出通道数为64的1x1卷积核后，可以将其转换为 [Batch_size, 64, 16, 16]，减少了后续处理步骤的计算负担。
+2. 维度扩展（升维）
+相反地，也可以使用1x1卷积来增加特征图的通道数，这在某些需要增强模型表达能力的场景下很有用。
+3. 跨通道信息整合
+非线性变换：1x1卷积可以在不改变空间结构的情况下对不同通道的信息进行组合或重新加权，实现跨通道的信息交互。
+特征重组：通过学习到的权重，1x1卷积能够捕捉到输入特征图中不同通道间的相关性，有助于提高模型的表现力。
+4. 构建高效的网络架构
+在诸如Inception、ResNet等现代网络架构中，1x1卷积被用来减少前一层的维度，然后再进行更大尺寸的卷积操作，这样可以显著减少计算量而不牺牲太多性能。
+瓶颈层（Bottleneck Layer）：特别是在残差网络(ResNets)中的瓶颈结构里，先通过1x1卷积缩小维度，然后应用3x3卷积，最后再用1x1卷积恢复维度，这种设计极大地降低了计算成本。
+5. 作为全连接层的替代
+在某些情况下，1x1卷积可以看作是每个空间位置上的全连接操作，尤其适用于全局池化之前，用于将多通道信息压缩到较少的特征表示。
+6. 注意力机制
+1x1卷积也常用于实现通道注意力机制，如SENet（Squeeze-and-Excitation Networks）中，通过对每个通道的重要性进行评估并调整，以增强有用的特征抑制不重要的特征。
+
+## 池化
+nn.AdaptiveAvgPool2d((x, y)) 是 PyTorch 中用于定义自适应平均池化层的一个类。这个层的主要功能是将输入特征图的尺寸调整为指定的输出尺寸 (x, y)，而无需关心输入的尺寸是多少。这里的 x 和 y 分别代表输出特征图的高度和宽度。
