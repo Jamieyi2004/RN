@@ -1,6 +1,12 @@
 # Research Notes
 
 ## 3.2
+### 僵尸进程
+```sh
+ ps aux | grep 'Z'
+ps -o ppid= <PID>
+kill -9 <PID>
+```
 ### git push 失败
 你遇到的`The agent has no identities.`消息表明当前SSH代理没有加载任何私钥。这意味着即使你的`~/.ssh/config`文件配置正确，Git操作也无法使用指定的私钥进行身份验证。下面是解决这个问题的具体步骤：
 
